@@ -11,9 +11,7 @@ use App\Models\OAuthAccessToken;
 
 class OAuthController extends Controller
 {
-    /**
-     * Show authorize form or redirect to login if not authenticated
-     */
+    // show authorization page or redirect to login
     public function authorize(Request $request)
     {
         $request->validate([
@@ -22,14 +20,13 @@ class OAuthController extends Controller
             'response_type' => 'required|in:code',
         ]);
 
-        // Verify client
         $client = OAuthClient::where('client_id', $request->client_id)->first();
 
         if (!$client || $client->redirect_uri !== $request->redirect_uri) {
             return response()->json(['error' => 'Invalid client'], 400);
         }
 
-        // Store OAuth params in session
+        // save oauth params in session
         $request->session()->put('oauth_params', [
             'client_id' => $request->client_id,
             'redirect_uri' => $request->redirect_uri,
@@ -37,7 +34,6 @@ class OAuthController extends Controller
             'state' => $request->state,
         ]);
 
-        // If not logged in, redirect to login
         if (!Auth::check()) {
             return redirect()->route('login');
         }
@@ -48,37 +44,22 @@ class OAuthController extends Controller
         ]);
     }
 
-    /**
-     * Show authorize form when user is already logged in
-     */
+    // show consent form if already logged in
     public function showAuthorizeForm(Request $request)
     {
         $params = $request->session()->get('oauth_params');
-
-        if (!$params) {
-            return redirect()->route('dashboard');
-        }
+        if (!$params) return redirect()->route('dashboard');
 
         $client = OAuthClient::where('client_id', $params['client_id'])->first();
-
-        return view('oauth.authorize', [
-            'client' => $client,
-            'params' => $params,
-        ]);
+        return view('oauth.authorize', compact('client', 'params'));
     }
 
-    /**
-     * Handle authorization approval
-     */
+    // user clicked "Authorize"
     public function approveAuthorize(Request $request)
     {
         $params = $request->session()->get('oauth_params');
+        if (!$params) return redirect()->route('dashboard');
 
-        if (!$params) {
-            return redirect()->route('dashboard');
-        }
-
-        // Generate auth code
         $code = Str::random(40);
 
         OAuthAuthCode::create([
@@ -88,40 +69,34 @@ class OAuthController extends Controller
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        // Clear session
         $request->session()->forget('oauth_params');
 
-        // Redirect back to client with auth code
-        $redirectUri = $params['redirect_uri'] . '?' . http_build_query([
+        $redirect = $params['redirect_uri'] . '?' . http_build_query([
             'code' => $code,
             'state' => $params['state'] ?? '',
         ]);
 
-        return redirect($redirectUri);
+        return redirect($redirect);
     }
 
-    /**
-     * Deny authorization
-     */
+    // user clicked "Deny"
     public function denyAuthorize(Request $request)
     {
         $params = $request->session()->get('oauth_params');
         $request->session()->forget('oauth_params');
 
         if ($params) {
-            $redirectUri = $params['redirect_uri'] . '?' . http_build_query([
+            $redirect = $params['redirect_uri'] . '?' . http_build_query([
                 'error' => 'access_denied',
                 'state' => $params['state'] ?? '',
             ]);
-            return redirect($redirectUri);
+            return redirect($redirect);
         }
 
         return redirect()->route('dashboard');
     }
 
-    /**
-     * Exchange auth code for access token (API endpoint)
-     */
+    // token endpoint - exchange auth code for access token
     public function token(Request $request)
     {
         $request->validate([
@@ -132,7 +107,6 @@ class OAuthController extends Controller
             'redirect_uri' => 'required|string',
         ]);
 
-        // Verify client
         $client = OAuthClient::where('client_id', $request->client_id)
             ->where('client_secret', $request->client_secret)
             ->first();
@@ -141,7 +115,6 @@ class OAuthController extends Controller
             return response()->json(['error' => 'invalid_client'], 401);
         }
 
-        // Verify auth code
         $authCode = OAuthAuthCode::where('code', $request->code)
             ->where('client_id', $request->client_id)
             ->where('expires_at', '>', now())
@@ -151,7 +124,6 @@ class OAuthController extends Controller
             return response()->json(['error' => 'invalid_grant'], 400);
         }
 
-        // Generate access token
         $token = Str::random(80);
 
         OAuthAccessToken::create([
@@ -161,19 +133,16 @@ class OAuthController extends Controller
             'expires_at' => now()->addDays(30),
         ]);
 
-        // Delete used auth code
         $authCode->delete();
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'expires_in' => 2592000, // 30 days
+            'expires_in' => 2592000,
         ]);
     }
 
-    /**
-     * Get user info using access token (API endpoint)
-     */
+    // api endpoint - return user info for given token
     public function userInfo(Request $request)
     {
         $token = str_replace('Bearer ', '', $request->header('Authorization'));

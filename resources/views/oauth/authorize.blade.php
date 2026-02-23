@@ -1,33 +1,28 @@
 @extends('layouts.app')
-@section('title', 'Authorize Application - Foodpanda')
+@section('title', 'Authorize - Foodpanda')
 @section('content')
 <div class="row justify-content-center mt-5">
     <div class="col-md-5">
-        <div class="card p-4">
-            <div class="card-body text-center">
-                <i class="fas fa-shield-alt fa-3x text-danger mb-3"></i>
-                <h4 class="fw-bold mb-3">Authorization Request</h4>
-                <p class="text-muted mb-4">
-                    <strong>{{ $client->name }}</strong> is requesting access to your Foodpanda account.
-                </p>
+        <div class="card">
+            <div class="card-header text-center bg-danger text-white">
+                <h5 class="mb-0">Authorization Request</h5>
+            </div>
+            <div class="card-body text-center p-4">
+                <p><strong>{{ $client->name }}</strong> wants to access your Foodpanda account.</p>
 
-                <div class="bg-light rounded-3 p-3 mb-4">
-                    <p class="mb-1"><i class="fas fa-user me-2 text-danger"></i>Logged in as: <strong>{{ Auth::user()->email }}</strong></p>
-                    <p class="mb-0"><i class="fas fa-globe me-2 text-danger"></i>Redirect to: <code>{{ $params['redirect_uri'] }}</code></p>
+                <div class="bg-light rounded p-3 mb-4 text-start">
+                    <p class="mb-1"><strong>Logged in as:</strong> {{ Auth::user()->email }}</p>
+                    <p class="mb-0"><strong>Redirect to:</strong> <code>{{ $params['redirect_uri'] }}</code></p>
                 </div>
 
-                <div class="d-flex gap-3 justify-content-center">
+                <div class="d-flex gap-2 justify-content-center">
                     <form method="POST" action="{{ route('oauth.authorize.approve') }}">
                         @csrf
-                        <button type="submit" class="btn btn-foodpanda px-4">
-                            <i class="fas fa-check me-2"></i>Authorize
-                        </button>
+                        <button type="submit" class="btn btn-success px-4">Authorize</button>
                     </form>
                     <form method="POST" action="{{ route('oauth.authorize.deny') }}">
                         @csrf
-                        <button type="submit" class="btn btn-outline-secondary px-4" style="border-radius:12px;">
-                            <i class="fas fa-times me-2"></i>Deny
-                        </button>
+                        <button type="submit" class="btn btn-outline-secondary px-4">Deny</button>
                     </form>
                 </div>
             </div>

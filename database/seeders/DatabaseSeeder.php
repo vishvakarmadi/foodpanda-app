@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Ecommerce App',
                 'client_secret' => 'secret123abc',
-                'redirect_uri' => 'http://localhost:8001/sso/callback',
+                'redirect_uri' => 'https://ecommerce-app.kisusoft.com/sso/callback',
             ]
         );
     }
